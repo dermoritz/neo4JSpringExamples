@@ -11,4 +11,8 @@ public class Actor {
 
     @Id
     private String id;
+//
+//    @EqualsAndHashCode.Exclude
+//    @Relationship(type = "PLAYED_IN")
+//    private Role roles;
 }

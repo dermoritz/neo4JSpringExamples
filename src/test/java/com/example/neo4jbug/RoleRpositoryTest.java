@@ -1,16 +1,17 @@
 package com.example.neo4jbug;
 
-import static java.util.stream.StreamSupport.*;
+import static org.hamcrest.core.Is.*;
 import static org.junit.Assert.*;
 
 import java.util.Optional;
+import java.util.stream.StreamSupport;
 
-import org.hamcrest.core.Is;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -20,13 +21,15 @@ public class RoleRpositoryTest {
     private RoleRepository repository;
 
     @Test
+    @Transactional
+    //@Rollback(false)
     public void testCrud(){
         //create
         Actor actor = new Actor();
-        actor.setId("muller");
+        actor.setId("actor");
 
         Movie movie = new Movie();
-        movie.setId("movie title");
+        movie.setId("1st movie");
 
         Role role = new Role();
         role.setActor(actor);
@@ -34,27 +37,28 @@ public class RoleRpositoryTest {
         role.setTitle("roleTitle");
 
         Role save = repository.save(role);
-        assertNotNull(save.getRelationshipId());
+        Long id = save.getRelationshipId();
+        assertNotNull(id);
         //read
-        Iterable<Role> all = repository.findAll();
-
-        assertThat(stream(all.spliterator(), false).count(), Is.is(1L));
+        Optional<Role> foundRoleOptional = repository.findById(id);
+        assertTrue(foundRoleOptional.isPresent());
+        Role savedAndFoundRole = foundRoleOptional.get();
+        assertThat(savedAndFoundRole.getMovie(), is(movie));
 
         //update
-        Role savedAndFoundRole = all.iterator().next();
-
         Movie movie1 = new Movie();
-        movie1.setId("2nd title");
+        movie1.setId("2nd movie");
 
         savedAndFoundRole.setMovie(movie1);
 
         Role updated = repository.save(savedAndFoundRole);
 
-        Optional<Role> byId = repository.findById(updated.getRelationshipId());
-        assertThat(byId.get().getMovie(), Is.is(movie1));
+        Iterable<Role> all = repository.findAll();
+        assertThat(StreamSupport.stream(all.spliterator(), false).count(), is(1L));
 
-        repository.deleteAll();
-        assertThat(stream(repository.findAll().spliterator(), false).count(), Is.is(0L));
+        //Optional<Role> byId = repository.findById(updated.getRelationshipId()); //this will work update creats new entity
+        Optional<Role> byId = repository.findById(id);
+        assertThat(byId.get().getMovie(), is(movie1));
 
     }
 
